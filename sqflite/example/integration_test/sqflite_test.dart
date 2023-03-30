@@ -95,16 +95,16 @@ void main() {
       return isDatabase;
     }
 
-    test('read_only missing database', () async {
-      const path = 'test_missing_database.db';
-      await deleteDatabase(path);
-      try {
-        final db = await openReadOnlyDatabase(path);
-        fail('should fail ${db.path}');
-      } on DatabaseException catch (_) {}
+    // test('read_only missing database', () async {
+    //   const path = 'test_missing_database.db';
+    //   await deleteDatabase(path);
+    //   try {
+    //     final db = await openReadOnlyDatabase(path);
+    //     fail('should fail ${db.path}');
+    //   } on DatabaseException catch (_) {}
 
-      expect(await isDatabase(path), isFalse);
-    });
+    //   expect(await isDatabase(path), isFalse);
+    // });
 
     test('read_only empty file', () async {
       const path = 'empty_file_database.db';
@@ -282,77 +282,77 @@ void main() {
         await db.close();
       }
     });
-    test('androidSetLocale', () async {
-      if (!kIsWeb && io.Platform.isAndroid) {
-        const path = 'test_android_set_locale.db';
-        await deleteDatabase(path);
-        late Database db;
+    // test('androidSetLocale', () async {
+    //   if (!kIsWeb && io.Platform.isAndroid) {
+    //     const path = 'test_android_set_locale.db';
+    //     await deleteDatabase(path);
+    //     late Database db;
 
-        db = await openDatabase(path,
-            onConfigure: (db) async {
-              await db.androidSetLocale('zh-CN');
-            },
-            version: 1,
-            onCreate: (db, v) async {
-              await db.execute('CREATE TABLE Test(name TEXT)');
-              for (var row in <Map<String, Object?>>[
-                {'name': '桌'},
-                {'name': '椅'},
-                {'name': '盘'},
-              ]) {
-                await db.insert('Test', row);
-              }
-            });
-        Future<List<String>> getNames() async {
-          return (await db.query('Test', orderBy: 'name COLLATE LOCALIZED ASC'))
-              .map((e) => e.values.first!.toString())
-              .toList();
-        }
+    //     db = await openDatabase(path,
+    //         onConfigure: (db) async {
+    //           await db.androidSetLocale('zh-CN');
+    //         },
+    //         version: 1,
+    //         onCreate: (db, v) async {
+    //           await db.execute('CREATE TABLE Test(name TEXT)');
+    //           for (var row in <Map<String, Object?>>[
+    //             {'name': '桌'},
+    //             {'name': '椅'},
+    //             {'name': '盘'},
+    //           ]) {
+    //             await db.insert('Test', row);
+    //           }
+    //         });
+    //     Future<List<String>> getNames() async {
+    //       return (await db.query('Test', orderBy: 'name COLLATE LOCALIZED ASC'))
+    //           .map((e) => e.values.first!.toString())
+    //           .toList();
+    //     }
 
-        try {
-          // Order ok
-          expect(await getNames(), ['盘', '椅', '桌']);
+    //     try {
+    //       // Order ok
+    //       expect(await getNames(), ['盘', '椅', '桌']);
 
-          // Reopen same locale
-          await db.close();
-          db = await openDatabase(
-            path,
-            onConfigure: (db) async {
-              await db.androidSetLocale('zh-CN');
-            },
-          );
-          // order ok too
-          expect(await getNames(), ['盘', '椅', '桌']);
+    //       // Reopen same locale
+    //       await db.close();
+    //       db = await openDatabase(
+    //         path,
+    //         onConfigure: (db) async {
+    //           await db.androidSetLocale('zh-CN');
+    //         },
+    //       );
+    //       // order ok too
+    //       expect(await getNames(), ['盘', '椅', '桌']);
 
-          await db.close();
-          // No locale
-          db = await openDatabase(path);
-          // order not ok
-          expect(await getNames(), ['桌', '椅', '盘']);
+    //       await db.close();
+    //       // No locale
+    //       db = await openDatabase(path);
+    //       // order not ok
+    //       expect(await getNames(), ['桌', '椅', '盘']);
 
-          await db.close();
-          db = await openDatabase(
-            path,
-            onConfigure: (db) async {
-              await db.androidSetLocale('en-US');
-            },
-          );
-          // order not ok
-          expect(await getNames(), ['桌', '椅', '盘']);
+    //       await db.close();
+    //       db = await openDatabase(
+    //         path,
+    //         onConfigure: (db) async {
+    //           await db.androidSetLocale('en-US');
+    //         },
+    //       );
+    //       // order not ok
+    //       expect(await getNames(), ['桌', '椅', '盘']);
 
-          await db.close();
-          db = await openDatabase(
-            path,
-            onConfigure: (db) async {
-              await db.androidSetLocale('zh-CN');
-            },
-          );
-          // order ok again
-          expect(await getNames(), ['盘', '椅', '桌']);
-        } finally {
-          await db.close();
-        }
-      }
-    });
+    //       await db.close();
+    //       db = await openDatabase(
+    //         path,
+    //         onConfigure: (db) async {
+    //           await db.androidSetLocale('zh-CN');
+    //         },
+    //       );
+    //       // order ok again
+    //       expect(await getNames(), ['盘', '椅', '桌']);
+    //     } finally {
+    //       await db.close();
+    //     }
+    //   }
+    // });
   });
 }

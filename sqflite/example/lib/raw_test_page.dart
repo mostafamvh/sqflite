@@ -39,8 +39,8 @@ class RawTestPage extends TestPage {
 
     test('Sqlite version', () async {
       final db = await openDatabase(inMemoryDatabasePath);
-      final results = await db.rawQuery('select sqlite_version()');
-      print('sqlite version: ${results.first.values.first}');
+      final results = await db.rawQuery('select spatialite_version()');
+      print('spatialite version: ${results.first.values.first}');
       await db.close();
     });
 

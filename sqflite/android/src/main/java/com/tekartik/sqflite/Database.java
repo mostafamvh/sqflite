@@ -21,11 +21,11 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.database.DatabaseErrorHandler;
+import org.spatialite.DatabaseErrorHandler;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteCantOpenDatabaseException;
-import android.database.sqlite.SQLiteCursor;
-import android.database.sqlite.SQLiteDatabase;
+import org.spatialite.database.SQLiteCursor;
+import org.spatialite.database.SQLiteDatabase;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
