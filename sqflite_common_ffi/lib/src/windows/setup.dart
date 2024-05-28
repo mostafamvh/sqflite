@@ -6,6 +6,9 @@ import 'package:sqflite_common_ffi/src/windows/setup_impl.dart';
 import 'package:sqlite3/open.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+/// Local info file name.
+const sqflite3InfoJsonFileName = 'sqflite3_info.json';
+
 /// Get the dll path from our package path.
 String packageGetSqlite3DllPath(String packagePath) {
   var path = join(packagePath, 'src', 'windows', 'sqlite3.dll');
@@ -57,8 +60,11 @@ String? findPackageLibPath(String path) {
   return null;
 }
 
+/// Compat
+String? findWindowsDllPath() => findWindowsSqlite3DllPath();
+
 /// Find windows dll path.
-String? findWindowsDllPath() {
+String? findWindowsSqlite3DllPath() {
   var location = findPackageLibPath(Directory.current.path);
   if (location == null) {
     // Try to handle when using global run

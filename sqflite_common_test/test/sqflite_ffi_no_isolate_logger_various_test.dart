@@ -1,5 +1,4 @@
 import 'package:sqflite_common/sqflite_logger.dart';
-import 'package:sqflite_common/sqlite_api.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_test/src/sqflite_import.dart';
 import 'package:test/test.dart';
@@ -33,7 +32,12 @@ Future<void> main() async {
   group('delete/exists', () {
     test('delete', () async {
       _events.clear();
-      await _invokeFactory.deleteDatabase(inMemoryDatabasePath);
+      // await _invokeFactory.deleteDatabase(inMemoryDatabasePath);
+      await _invokeFactory.invokeMethod<void>(
+          'deleteDatabase', <String, Object?>{
+        'path': ':memory:'
+      }); // deleteDatabase(inMemoryDatabasePath);
+
       expect(_events.toMapListNoSw(), [
         {
           'method': 'deleteDatabase',
@@ -128,6 +132,7 @@ Future<void> main() async {
       expect(openEvent.options?.version, 1);
       expect(openEvent.path, inMemoryDatabasePath);
       expect(openEvent.db, db);
+      expect(openEvent.databaseId, isNotNull);
       _events.clear();
 
       await db.close();
@@ -137,6 +142,7 @@ Future<void> main() async {
       event = _events[0];
       expect(event, isA<SqfliteLoggerDatabaseCloseEvent>());
       var closeEvent = event as SqfliteLoggerDatabaseCloseEvent;
+      expect(openEvent.databaseId, isNotNull);
       expect(closeEvent.db, db);
     });
 
@@ -176,6 +182,7 @@ Future<void> main() async {
       expect(event, isA<SqfliteLoggerSqlEvent>());
       sqlEvent = event as SqfliteLoggerSqlEvent;
       expect(sqlEvent.type, SqliteSqlCommandType.update);
+      expect(sqlEvent.databaseId, dbId);
 
       // Query
       _events.clear();
@@ -279,6 +286,8 @@ Future<void> main() async {
       operation = operations[4];
       expect(operation, isA<SqfliteLoggerSqlCommandExecute>());
       expect(operation.type, SqliteSqlCommandType.execute);
+      expect(operationEvent.databaseId, dbId);
+      expect(operationEvent.transactionId, isNull);
     });
 
     test('crud', () async {
@@ -380,6 +389,10 @@ Future<void> main() async {
         },
         {'db': dbId, 'txn': 3, 'sql': 'COMMIT'}
       ]);
+      var event = _events[4] as SqfliteLoggerSqlEvent;
+      expect(event.databaseId, dbId);
+      expect(event.transactionId, 2);
+
       _events.clear();
 
       await db.transaction((txn) async {

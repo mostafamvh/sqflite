@@ -17,7 +17,7 @@ export 'src/expect.dart' show expect, fail;
 /// Base test page.
 class TestPage extends StatefulWidget {
   /// Base test page.
-  TestPage(this.title, {Key? key}) : super(key: key);
+  TestPage(this.title, {super.key});
 
   /// The title.
   final String title;
@@ -70,7 +70,7 @@ bool? verify(bool? condition, [String? message]) {
 }
 
 /// Group.
-abstract class Group {
+abstract mixin class Group {
   /// List of tests.
   List<Test> get tests;
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:sqflite_common/sql.dart' show ConflictAlgorithm;
 import 'package:sqflite_common/src/database.dart';
@@ -53,6 +54,12 @@ abstract class DatabaseFactory {
 
   /// Check if a database exists
   Future<bool> databaseExists(String path);
+
+  /// Write database bytes.
+  Future<void> writeDatabaseBytes(String path, Uint8List bytes);
+
+  /// Read database bytes.
+  Future<Uint8List> readDatabaseBytes(String path);
 }
 
 ///
@@ -286,8 +293,12 @@ abstract class Database implements DatabaseExecutor {
   ///   // this will deadlock!
   ///   await database.execute('CREATE TABLE Test2 (id INTEGER PRIMARY KEY)');
   /// });
+  /// ```
   Future<T> transaction<T>(Future<T> Function(Transaction txn) action,
       {bool? exclusive});
+
+  /// Read-only transaction (experimental, for now only supported in async_sqlite, use a normal transaction otherwise)
+  Future<T> readTransaction<T>(Future<T> Function(Transaction txn) action);
 
   /// Tell if the database is open, returns false once close has been called
   bool get isOpen;
@@ -433,8 +444,8 @@ abstract class OpenDatabaseOptions {
       OnDatabaseVersionChangeFn? onUpgrade,
       OnDatabaseVersionChangeFn? onDowngrade,
       OnDatabaseOpenFn? onOpen,
-      bool readOnly = false,
-      bool singleInstance = true}) {
+      bool? readOnly = false,
+      bool? singleInstance = true}) {
     return impl.SqfliteOpenDatabaseOptions(
         version: version,
         onConfigure: onConfigure,

@@ -1,3 +1,33 @@
+## 2.3.3+1
+
+* Remove android v1 embedding support
+* Use `compileSdk 34` on Android
+* `sdk: >= 3.3.0`
+
+## 2.3.2
+
+* Shared iOS/MacOS darwin implementation
+* Remove FMDB podspec dependency
+
+## 2.3.1
+
+* Add iOS/MacOS privacy manifest
+
+## 2.3.0
+
+* Dart 3 only
+
+## 2.2.8+4
+
+* Android: Adds a namespace for compatibility with AGP 8.0.
+* Android: Use compile SDK 33
+* Export global sqflite API
+* iOS set minimum deployment target to 11.0
+
+## 2.2.7
+
+* Dart 3 support
+
 ## 2.2.6
 
 * uri support for supported implementations.
@@ -41,7 +71,7 @@
 
 ## 2.0.4-dev.1
 
-* Android: Allow turing on WAL in the manifest.
+* Android: Allow turning on WAL in the manifest.
 
 ## 2.0.3+1
 

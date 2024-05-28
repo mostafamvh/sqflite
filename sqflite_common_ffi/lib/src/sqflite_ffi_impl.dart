@@ -3,37 +3,25 @@ import 'dart:typed_data';
 
 import 'package:path/path.dart';
 import 'package:sqflite_common/src/mixin/constant.dart'; // ignore: implementation_imports
+import 'package:sqflite_common/utils/utils.dart';
 import 'package:sqflite_common_ffi/src/constant.dart';
 import 'package:sqflite_common_ffi/src/sqflite_ffi_exception.dart';
+import 'package:sqflite_common_ffi/src/sqflite_ffi_handler.dart';
 import 'package:sqlite3/common.dart' as common;
 import 'package:synchronized/synchronized.dart';
 
-import 'database_tracker.dart' if (dart.library.js) 'database_tracker_web.dart';
+import 'database_tracker.dart'
+    if (dart.library.js_interop) 'database_tracker_web.dart';
 import 'import.dart';
 import 'sqflite_ffi_impl_io.dart'
-    if (dart.library.js) 'sqflite_ffi_impl_web.dart';
+    if (dart.library.js_interop) 'sqflite_ffi_impl_web.dart';
+
+export 'sqflite_ffi_handler.dart'
+    show SqfliteFfiHandler; // compatibility, was defined here before
 
 final _debug = false; // devWarning(true); // false
 
 final _globalHandlerLock = Lock();
-
-/// Ffi handler.
-abstract class SqfliteFfiHandler {
-  /// Opens the database using an ffi implementation
-  Future<common.CommonDatabase> openPlatform(Map argumentsMap);
-
-  /// Delete the database file.
-  Future<void> deleteDatabasePlatform(String path);
-
-  /// Check if database file exists
-  Future<bool> handleDatabaseExistsPlatform(String path);
-
-  /// Default database path.
-  String getDatabasesPathPlatform();
-
-  /// Ffi specific options (for the web contains the sqlite3 wasm url)
-  Future<void> handleOptionsPlatform(Map argumentMap);
-}
 
 /// By id
 var ffiDbs = <int, SqfliteFfiDatabase>{};
@@ -191,18 +179,33 @@ class SqfliteFfiDatabase {
 
   Future<void> _handleExecute({required String sql, List? sqlArguments}) async {
     logSql(sql: sql, sqlArguments: sqlArguments);
-    if (sqlArguments?.isNotEmpty ?? false) {
-      // devPrint('execute $sql $sqlArguments');
-      var preparedStatement = _ffiDb.prepare(sql);
-      try {
-        preparedStatement.execute(_ffiArguments(sqlArguments));
-        return;
-      } finally {
-        preparedStatement.dispose();
+
+    /// Handle custom pragma.
+    if (sql.startsWith(sqflitePragmaPrefix)) {
+      if (sql == sqflitePragmaDbDefensiveOff) {
+        /// There is no good way to debug that but to use a print statements sometimes...
+        if (_debug) {
+          print('Turning off defensive mode');
+        }
+
+        /// final int SQLITE_DBCONFIG_DEFENSIVE = 1010;
+        const sqliteDbConfigDefensive = 1010;
+        _ffiDb.config.setIntConfig(sqliteDbConfigDefensive, 0);
       }
     } else {
-      // devPrint('execute no args $sql');
-      _ffiDb.execute(sql);
+      if (sqlArguments?.isNotEmpty ?? false) {
+        // devPrint('execute $sql $sqlArguments');
+        var preparedStatement = _ffiDb.prepare(sql);
+        try {
+          preparedStatement.execute(_ffiArguments(sqlArguments));
+          return;
+        } finally {
+          preparedStatement.dispose();
+        }
+      } else {
+        // devPrint('execute no args $sql');
+        _ffiDb.execute(sql);
+      }
     }
   }
 
@@ -265,6 +268,22 @@ class SqfliteFfiDatabase {
         transactionId == paramTransactionIdValueForce) {
       try {
         return await handler();
+      } on common.SqliteException catch (e) {
+        // Check if the transaction has been rolledback already
+        var transactionClosed = false;
+        try {
+          transactionClosed =
+              (_currentTransactionId != null && _ffiDb.autocommit);
+        } catch (_) {
+          // Ignore errors to keep existing behavior if somehow autocommit is not yet available
+        }
+        if (transactionClosed) {
+          /// Leaving the transaction.
+          _currentTransactionId = null;
+          throw _ffiWrapSqliteException(e)..transactionClosed = true;
+        } else {
+          rethrow;
+        }
       } finally {
         // If we are no longer in a transaction, run queued action asynchronously
         if (_currentTransactionId == null) {
@@ -439,7 +458,7 @@ class SqfliteFfiDatabase {
 
   /// Return the count of updated row.
   int _getUpdatedRows() {
-    var rowCount = _ffiDb.getUpdatedRows();
+    var rowCount = _ffiDb.updatedRows;
     if (logLevel >= sqfliteLogLevelSql) {
       print('$_prefix Modified $rowCount rows');
     }
@@ -465,6 +484,7 @@ class SqfliteFfiDatabase {
     if (!noResult) {
       results = <Map<String, Object?>>[];
     }
+
     for (var operation in operations) {
       // devPrint('operation $operation');
       Map<String, Object?> getErrorMap(SqfliteFfiException e) {
@@ -500,6 +520,19 @@ class SqfliteFfiDatabase {
         if (continueOnError) {
           if (!noResult) {
             results!.add(getErrorMap(wrap(e)));
+          }
+          // Check if the transaction has been rolledback already
+          var transactionClosed = false;
+          try {
+            transactionClosed =
+                (_currentTransactionId != null && _ffiDb.autocommit);
+          } catch (_) {
+            // Ignore errors to keep existing behavior if somehow autocommit is not yet available
+          }
+          if (transactionClosed) {
+            /// Leaving the transaction.
+            _currentTransactionId = null;
+            throw wrap(e)..transactionClosed = true;
           }
         } else {
           throw wrap(e);
@@ -574,6 +607,22 @@ SqfliteFfiHandler get sqfliteFfiHandler =>
 
 set sqfliteFfiHandler(SqfliteFfiHandler handler) =>
     _sqfliteFfiHandler = handler;
+
+/// Wrap SQL exception.
+SqfliteFfiException ffiWrapSqliteException(common.SqliteException e,
+    {String? code, Map<String, Object?>? details}) {
+  return _ffiWrapSqliteException(e, code: code, details: details);
+}
+
+/// Wrap any exception.
+SqfliteFfiException ffiWrapAnyException(Object e) {
+  if (e is SqfliteFfiException) {
+    return e;
+  } else if (e is common.SqliteException) {
+    return _ffiWrapSqliteException(e);
+  }
+  return SqfliteFfiException(code: sqliteErrorCode, message: e.toString());
+}
 
 /// Wrap SQL exception.
 SqfliteFfiException _ffiWrapSqliteException(common.SqliteException e,
@@ -694,6 +743,10 @@ extension SqfliteFfiMethodCallHandler on FfiMethodCall {
         return await _wrapGlobalHandler(handleDatabaseExists);
       case methodOptions:
         return await _wrapGlobalHandler(handleOptions);
+      case methodWriteDatabaseBytes:
+        return await _wrapGlobalHandler(handleWriteDatabaseBytes);
+      case methodReadDatabaseBytes:
+        return await _wrapGlobalHandler(handleReadDatabaseBytes);
       // compat
       case 'debugMode':
         return await handleDebugMode();
@@ -832,6 +885,12 @@ extension SqfliteFfiMethodCallHandler on FfiMethodCall {
       path = join(getDatabasesPath(), path);
     }
     return path;
+  }
+
+  /// Get the `bytes` argument as Uint8List.
+  Uint8List? getBytes() {
+    var bytes = _getParam<Uint8List>(paramBytes);
+    return bytes;
   }
 
   /// Check the arguments
@@ -1023,6 +1082,20 @@ extension SqfliteFfiMethodCallHandler on FfiMethodCall {
   Future<bool> handleDatabaseExists() async {
     var path = getPath();
     return sqfliteFfiHandler.handleDatabaseExistsPlatform(path!);
+  }
+
+  /// Handle `readDatabaseBytes`.
+  Future<Map> handleReadDatabaseBytes() async {
+    var path = getPath();
+    var bytes = await sqfliteFfiHandler.readDatabaseBytesPlatform(path!);
+    return <String, Object?>{paramBytes: bytes};
+  }
+
+  /// Handle `writeDatabaseBytes`.
+  Future<void> handleWriteDatabaseBytes() async {
+    var path = getPath();
+    var bytes = getBytes();
+    return sqfliteFfiHandler.writeDatabaseBytesPlatform(path!, bytes!);
   }
 }
 

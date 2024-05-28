@@ -57,6 +57,7 @@ void run(SqfliteTestContext? context) {
       scenario.end();
     });
     test('delete', () async {
+      // sqliteFfiWebDebugWebWorker = devWarning((true);
       final scenario = wrapStartScenario(factory, [
         [
           'deleteDatabase',

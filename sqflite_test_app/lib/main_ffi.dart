@@ -14,47 +14,50 @@ Future<void> main() async {
 }
 
 /// Run using ffi (io or web)
-Future<void> mainFfi() async {
-  await initFfi();
+Future<void> mainFfi({bool? webBasicWorker}) async {
+  await initFfi(webBasicWorker: webBasicWorker);
   await runFfi();
 }
 
 /// Init Ffi for io or web
 ///
 /// if [noWorker] is true, no isolate is used on io and no web worker is used on the web.
-Future<void> initFfi({bool? noWorker}) async {
+Future<void> initFfi({bool? noWorker, bool? webBasicWorker}) async {
   noWorker ??= false;
   // getDatabasesPath implementation is lame, use the default one
   // but we could also use path_provider
   var isSqfliteCompatible =
       !kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isMacOS);
-  DatabaseFactory? original;
+  //DatabaseFactory? original;
   // Save original for iOS & Android
-  if (isSqfliteCompatible) {
-    original = databaseFactory;
-  }
-
-  WidgetsFlutterBinding.ensureInitialized();
 
   if (kIsWeb) {
     if (noWorker) {
-      databaseFactory = databaseFactoryFfiWebNoWebWorker;
+      databaseFactoryOrNull = databaseFactoryFfiWebNoWebWorker;
     } else {
-      databaseFactory = databaseFactoryFfiWeb;
+      webBasicWorker ??= false;
+      if (webBasicWorker) {
+        databaseFactoryOrNull = databaseFactoryFfiWebBasicWebWorker;
+      } else {
+        // default (not supported on io
+        databaseFactoryOrNull = databaseFactoryFfiWeb;
+      }
     }
     // Platform handler for the example app
     platformHandler = platformHandlerWeb;
   } else {
     sqfliteFfiInit();
     if (noWorker) {
-      databaseFactory = databaseFactoryFfiNoIsolate;
+      databaseFactoryOrNull = databaseFactoryFfiNoIsolate;
     } else {
-      databaseFactory = databaseFactoryFfi;
+      databaseFactoryOrNull = databaseFactoryFfi;
     }
   }
+  WidgetsFlutterBinding.ensureInitialized();
   // Use sqflite databases path provider (ffi implementation is lame))
   if (isSqfliteCompatible) {
-    await databaseFactory.setDatabasesPath(await original!.getDatabasesPath());
+    await databaseFactory.setDatabasesPath(
+        await databaseFactorySqflitePlugin.getDatabasesPath());
   }
 }
 

@@ -3,10 +3,8 @@
 [sqflite](https://pub.dev/packages/sqflite) based ffi implementation. Based
 on [`sqlite3`](https://pub.dev/packages/sqlite3). Thanks to [Simon Binder](https://github.com/simolus3)
 
-Currently supported on Linux, MacOS and Windows on both Flutter and Dart VM.
-
-While not tested extensively, it also
-works on iOS and Android (using [sqlite3_flutter_libs](https://pub.dev/packages/sqlite3_flutter_libs) - Thanks
+* Works on Linux, MacOS and Windows on both Flutter and Dart VM.
+* Works on iOS and Android (using [sqlite3_flutter_libs](https://pub.dev/packages/sqlite3_flutter_libs) - Thanks
 to [Simon Binder](https://github.com/simolus3))
 
 It allows also mocking sqflite during regular flutter unit test (i.e. not using the emulator/simulator).
@@ -112,6 +110,45 @@ Future main() async {
   // prints [{id: 1, title: Product 1}, {id: 2, title: Product 1}]
   await db.close();
 }
+```
+
+Example with path_provider
+
+```dart
+import 'dart:io' as io;
+import 'package:path/path.dart' as p;
+import 'package:sqflite_common/sqlite_api.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:path_provider/path_provider.dart';
+
+Future main() async {
+  // Init ffi loader if needed.
+  sqfliteFfiInit();
+
+  var databaseFactory = databaseFactoryFfi;
+  final io.Directory appDocumentsDir = await getApplicationDocumentsDirectory();
+  
+  //Create path for database
+  String dbPath = p.join(appDocumentsDir.path, "databases", "myDb.db");
+  var db = await databaseFactory.openDatabase(
+    dbPath,
+  );
+
+  await db.execute('''
+  CREATE TABLE Product (
+      id INTEGER PRIMARY KEY,
+      title TEXT
+  )
+  ''');
+  await db.insert('Product', <String, Object?>{'title': 'Product 1'});
+  await db.insert('Product', <String, Object?>{'title': 'Product 1'});
+
+  var result = await db.query('Product');
+  print(result);
+  // prints [{id: 1, title: Product 1}, {id: 2, title: Product 1}]
+  await db.close();
+}
+
 ```
 
 If your existing application uses sqflite on iOS/Android/MacOS, you can also set the proper initialization to have

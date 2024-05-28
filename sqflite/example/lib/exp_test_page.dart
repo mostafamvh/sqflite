@@ -345,10 +345,10 @@ class ExpTestPage extends TestPage {
       await deleteDatabase(path);
 
       // Copy from asset
-      final data = await rootBundle.load(join('assets', 'issue_64.db'));
+      final data = await rootBundle.load(url.join('assets', 'issue_64.db'));
       final bytes =
           data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-      await writeFileAsBytes(path, bytes);
+      await databaseFactory.writeDatabaseBytes(path, bytes);
 
       // open the database
       final db = await openDatabase(path);
@@ -488,6 +488,21 @@ CREATE TABLE test (
       }
     });
 
+    test('PRAGMA quick check', () async {
+      //await databaseFactory.debugSetLogLevel(sqfliteLogLevelVerbose);
+      final db = await openDatabase(inMemoryDatabasePath);
+      try {
+        await db.rawQuery('PRAGMA quick_check');
+
+        try {
+          await db.execute('PRAGMA quick_check');
+        } catch (e) {
+          print('execute PRAGMA quick_check failed: $e');
+        }
+      } finally {
+        await db.close();
+      }
+    });
     test('ATTACH database', () async {
       final db1Path = await initDeleteDb('attach1.db');
       final db2Path = await initDeleteDb('attach2.db');
