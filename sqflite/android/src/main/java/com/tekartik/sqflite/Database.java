@@ -21,11 +21,8 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import org.spatialite.DatabaseErrorHandler;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteCantOpenDatabaseException;
-import org.spatialite.database.SQLiteCursor;
-import org.spatialite.database.SQLiteDatabase;
 import android.os.Build;
 import android.util.Log;
 
@@ -40,6 +37,9 @@ import com.tekartik.sqflite.operation.QueuedOperation;
 import com.tekartik.sqflite.operation.SqlErrorInfo;
 
 import org.jetbrains.annotations.NotNull;
+import org.spatialite.DatabaseErrorHandler;
+import org.spatialite.database.SQLiteCursor;
+import org.spatialite.database.SQLiteDatabase;
 
 import java.io.File;
 import java.util.ArrayList;

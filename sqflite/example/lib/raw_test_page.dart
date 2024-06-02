@@ -39,8 +39,22 @@ class RawTestPage extends TestPage {
 
     test('Sqlite version', () async {
       final db = await openDatabase(inMemoryDatabasePath);
+      final results = await db.rawQuery('select sqlite_version()');
+      print('spatialite version: ${results.first.values.first}');
+      await db.close();
+    });
+
+    test('Spatialite version', () async {
+      final db = await openDatabase(inMemoryDatabasePath);
       final results = await db.rawQuery('select spatialite_version()');
       print('spatialite version: ${results.first.values.first}');
+      await db.close();
+    });
+
+    test('Spatialite MetaData', () async {
+      final db = await openDatabase(inMemoryDatabasePath);
+      final results = await db.rawQuery('select InitSpatialMetaData()');
+      print('spatialite meta-data: ${results.first.values.first}');
       await db.close();
     });
 

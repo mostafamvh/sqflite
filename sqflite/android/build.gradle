@@ -53,6 +53,7 @@ android {
 }
 
 dependencies {
+    implementation 'androidx.annotation:annotation-jvm:1.8.0'
     testImplementation 'junit:junit:4.13.2'
     implementation 'com.github.sevar83:android-spatialite:2.0.1'
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sqflite_example/batch_test_page.dart';
 import 'package:sqflite_example/deprecated_test_page.dart';
 import 'package:sqflite_example/exception_test_page.dart';
@@ -200,5 +201,13 @@ class _MyHomePageState extends State<MyHomePage> {
     return MainItemWidget(widget._items[index], (MainItem item) {
       Navigator.of(context).pushNamed(item.route!);
     });
+  }
+}
+
+class Spatialite {
+  static const MethodChannel _channel = MethodChannel('spatialite');
+
+  static Future<void> initSpatialite() async {
+    await _channel.invokeMethod('initSpatialite');
   }
 }
